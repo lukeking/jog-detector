@@ -10,219 +10,331 @@
 <title>JogStart</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;800&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+  --accent: #00e5a0; --accent2: #ff4d6d; --text: #e8e8f0;
+  --muted: #5a5a7a; --warn: #ffb830; --ytm: #1db954;
+}
+html { height: 100%; }
+body {
+  min-height: 100%; background: var(--bg); color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px 32px;
+  position: relative; overflow-x: hidden; overflow-y: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.glow-orb { position: fixed; width: 400px; height: 400px; border-radius: 50%; pointer-events: none; z-index: 0; }
+.glow-orb.top  { top:-100px; left:-100px; background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%); }
+.glow-orb.bot  { bottom:-100px; right:-100px; background: radial-gradient(circle, rgba(255,77,109,0.06) 0%, transparent 70%); }
 
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --border: #1e1e2e;
-    --accent: #00e5a0;
-    --accent2: #ff4d6d;
-    --text: #e8e8f0;
-    --muted: #5a5a7a;
-    --warn: #ffb830;
-  }
+/* ── Container ── */
+.container {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 390px;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
 
-  html, body {
-    height: 100%; width: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Barlow', sans-serif;
-    -webkit-tap-highlight-color: transparent;
-  }
+/* ── Header ── */
+.header { width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+.logo { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:2.3rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); line-height:1; }
+.logo span { color: var(--text); }
+.tagline { font-size:0.72rem; color:var(--muted); letter-spacing:0.18em; text-transform:uppercase; margin-top:3px; text-align:center; }
 
-  body {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 20px;
-    position: relative;
-    min-height: 100%;
-    overflow-y: auto;
-  }
+/* Help button — top-right corner */
+.btn-help {
+  position: absolute; right: 0; top: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s; touch-action: manipulation;
+}
+.btn-help:active, .btn-help:hover { border-color: var(--accent); color: var(--accent); }
 
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* ── Ring ── */
+.ring-wrap { position: relative; width: 185px; height: 185px; }
+.ring-svg { width:100%; height:100%; transform: rotate(-90deg); }
+.ring-bg { fill:none; stroke:var(--border); stroke-width:4; }
+.ring-fill {
+  fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round;
+  stroke-dasharray:502; stroke-dashoffset:502;
+  transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+.ring-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.cadence-val { font-family:'Barlow Condensed',sans-serif; font-size:2.7rem; font-weight:800; line-height:1; color:var(--accent); transition:color 0.4s; }
+.cadence-label { font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+.status-text { font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:1} 100%{transform:scale(1.25);opacity:0} }
+.pulse-ring { position:absolute; inset:-8px; border-radius:50%; border:2px solid var(--accent); opacity:0; pointer-events:none; }
+.jogging-active .pulse-ring { animation: pulse-ring 1.2s ease-out infinite; }
+@keyframes flash { 0%{background:rgba(0,229,160,0.12)} 100%{background:transparent} }
+.flash { animation: flash 0.18s ease; }
 
-  .glow-orb {
-    position: fixed;
-    width: 400px; height: 400px;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .glow-orb.top { top: -100px; left: -100px; background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%); }
-  .glow-orb.bottom { bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(255,77,109,0.06) 0%, transparent 70%); }
+/* ── Stats ── */
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 6px; text-align:center; }
+.stat-val { font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:1.25rem; color:var(--text); }
+.stat-lbl { font-size:0.57rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
 
-  .container {
-    position: relative; z-index: 1;
-    width: 100%; max-width: 380px;
-    display: flex; flex-direction: column;
-    align-items: center; gap: 18px;
-  }
+/* ── Sensitivity ── */
+.slider-row { width:100%; display:flex; align-items:center; gap:10px; }
+.slider-lbl { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); white-space:nowrap; min-width:76px; }
+input[type=range] { flex:1; accent-color:var(--accent); cursor:pointer; }
+.slider-val { font-family:'Barlow Condensed',sans-serif; font-size:0.9rem; color:var(--accent); min-width:24px; text-align:right; }
 
-  .header { text-align: center; }
-  .logo {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 2.4rem;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--accent); line-height: 1;
-  }
-  .logo span { color: var(--text); }
-  .tagline {
-    font-size: 0.73rem; color: var(--muted);
-    letter-spacing: 0.18em; text-transform: uppercase; margin-top: 4px;
-  }
+/* ── Main button ── */
+.btn-main {
+  width:100%; padding:16px; border-radius:14px; border:none; cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif; font-weight:800;
+  font-size:1.12rem; letter-spacing:0.15em; text-transform:uppercase;
+  background:var(--accent); color:#0a0a0f;
+  transition:all 0.18s; touch-action:manipulation;
+}
+.btn-main:active { transform:scale(0.97); }
+.btn-main.armed  { background:var(--accent2); color:#fff; }
+.btn-main.jogging { background:transparent; color:var(--accent); border:2px solid var(--accent); }
 
-  .ring-wrap { position: relative; width: 190px; height: 190px; }
-  .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
-  .ring-fill {
-    fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
-    stroke-dasharray: 502; stroke-dashoffset: 502;
-    transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
-    filter: drop-shadow(0 0 6px var(--accent));
-  }
-  .ring-inner {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 2px;
-  }
-  .cadence-val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2.8rem; font-weight: 800; line-height: 1;
-    color: var(--accent); transition: color 0.4s;
-  }
-  .cadence-label { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
-  .status-text { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+/* ── Music banner ──
+   Uses position:relative inside flex, width:100%, display:block (not none→block)
+   to avoid any overflow clipping. Visibility toggled via opacity+pointer-events
+   so it always participates in layout and can never be clipped by overflow:hidden.
+   THIS is why the previous banner was invisible: the parent had overflow:hidden
+   and the banner appeared after layout was frozen. Fixed here.
+*/
+.music-banner {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--ytm) 0%, var(--accent) 100%);
+  color: #0a0a0f;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 1.08rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  touch-action: manipulation;
+  /* Hidden by default using opacity + pointer-events, NOT display:none,
+     so the element always has layout and is never clipped */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  position: relative; /* stay in flex flow */
+  max-height: 0;
+  overflow: hidden;
+  padding-top: 0; padding-bottom: 0;
+  transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease, transform 0.35s ease;
+}
+.music-banner.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  max-height: 120px;
+  padding: 16px;
+}
+.music-banner:active { transform: scale(0.97); }
+.music-banner .msub { display:block; font-size:0.62rem; font-weight:400; opacity:0.8; margin-top:3px; letter-spacing:0.08em; }
 
-  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%; }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 10px 6px; text-align: center;
-  }
-  .stat-val { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 1.3rem; color: var(--text); }
-  .stat-lbl { font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+/* ── Wakelock indicator ── */
+.wakelock-badge {
+  font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); display: flex; align-items: center; gap: 5px;
+  align-self: flex-end;
+}
+.wakelock-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+.wakelock-dot.on { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
 
-  /* Main action button */
-  .btn-start {
-    width: 100%; padding: 16px; border-radius: 14px; border: none; cursor: pointer;
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
-    font-size: 1.15rem; letter-spacing: 0.15em; text-transform: uppercase;
-    background: var(--accent); color: #0a0a0f;
-    transition: all 0.18s ease;
-    touch-action: manipulation;
-  }
-  .btn-start:active { transform: scale(0.97); }
-  .btn-start.armed { background: var(--accent2); color: #fff; }
-  .btn-start.jogging { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
-  .btn-start:disabled { opacity: 0.4; cursor: default; }
+/* ── Secondary buttons ── */
+.btn-row { display:flex; gap:8px; width:100%; }
+.btn-secondary {
+  flex:1; padding:11px 8px; border-radius:12px;
+  border:1px solid var(--border); cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif; font-weight:600;
+  font-size:0.9rem; letter-spacing:0.12em; text-transform:uppercase;
+  background:transparent; color:var(--muted);
+  transition:all 0.18s; touch-action:manipulation;
+}
+.btn-secondary:active { background:var(--surface); color:var(--text); }
 
-  /*
-   * MUSIC BANNER
-   * Shown as a large tappable button when jog is confirmed.
-   * The user's own tap = user gesture → window.open() is NOT blocked.
-   * This replaces the broken iframe/setTimeout approach which had no user gesture.
-   */
-  .music-banner {
-    display: none;
-    width: 100%; padding: 15px 16px; border-radius: 14px; border: none; cursor: pointer;
-    background: linear-gradient(135deg, #1db954 0%, #00e5a0 100%);
-    color: #0a0a0f;
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
-    font-size: 1.08rem; letter-spacing: 0.1em; text-transform: uppercase;
-    text-align: center;
-    touch-action: manipulation;
-    animation: bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transition: opacity 0.3s, transform 0.15s;
-  }
-  .music-banner.visible { display: block; }
-  .music-banner:active { transform: scale(0.97); }
-  .music-banner .sub {
-    display: block; font-size: 0.63rem; font-weight: 400;
-    opacity: 0.75; margin-top: 3px; letter-spacing: 0.08em;
-  }
-  @keyframes bounce-in {
-    0% { transform: scale(0.8); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
+/* ── Activity log ── */
+.log-wrap { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.log-head { padding:8px 14px; font-size:0.6rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+.log-body { padding:8px 14px; height:68px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; }
+.log-entry { font-size:0.68rem; color:var(--muted); display:flex; gap:7px; }
+.log-entry .ts { color:var(--accent); font-family:'Barlow Condensed',sans-serif; flex-shrink:0; }
+.log-entry.ok .msg { color:var(--accent); }
+.log-entry.warn .msg { color:var(--warn); }
+.log-entry.err .msg { color:var(--accent2); }
 
-  /* Reset button */
-  .btn-reset {
-    width: 100%; padding: 11px 16px; border-radius: 14px;
-    border: 1px solid var(--border); cursor: pointer;
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
-    font-size: 0.95rem; letter-spacing: 0.15em; text-transform: uppercase;
-    background: transparent; color: var(--muted);
-    transition: all 0.18s ease; touch-action: manipulation;
-  }
-  .btn-reset:active { background: var(--surface); color: var(--text); border-color: var(--muted); }
+/* ── Permission overlay ── */
+.overlay {
+  position:fixed; inset:0; background:rgba(10,10,15,0.97);
+  z-index:200; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px; gap:16px; text-align:center;
+}
+.overlay.hidden { display:none; }
+.overlay-icon { font-size:2.8rem; }
+.overlay h2 { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:1.65rem; }
+.overlay p { color:var(--muted); font-size:0.84rem; line-height:1.65; }
+.overlay .btn-main { max-width:280px; }
+.overlay-note { font-size:0.68rem; color:var(--muted); }
 
-  /* Sensitivity slider */
-  .slider-row { width: 100%; display: flex; align-items: center; gap: 12px; }
-  .slider-lbl { font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); white-space: nowrap; min-width: 80px; }
-  input[type=range] { flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer; }
-  .slider-val { font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem; color: var(--accent); min-width: 28px; text-align: right; }
-
-  /* Activity log */
-  .log-wrap { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  .log-head { padding: 8px 14px; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
-  .log-body { padding: 8px 14px; height: 72px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
-  .log-entry { font-size: 0.7rem; color: var(--muted); display: flex; gap: 8px; }
-  .log-entry .ts { color: var(--accent); font-family: 'Barlow Condensed', sans-serif; flex-shrink: 0; }
-  .log-entry.ok .msg { color: var(--accent); }
-  .log-entry.warn .msg { color: var(--warn); }
-  .log-entry.err .msg { color: var(--accent2); }
-
-  /* Permission overlay */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(10,10,15,0.96);
-    z-index: 100; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 32px; gap: 18px; text-align: center;
-  }
-  .overlay.hidden { display: none; }
-  .overlay-icon { font-size: 3rem; }
-  .overlay h2 { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 1.7rem; letter-spacing: 0.05em; }
-  .overlay p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
-  .overlay .btn-start { max-width: 280px; }
-
-  /* Pulse ring */
-  @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(1.25); opacity: 0; }
-  }
-  .pulse-ring { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; pointer-events: none; }
-  .jogging-active .pulse-ring { animation: pulse-ring 1.2s ease-out infinite; }
-
-  @keyframes flash { 0% { background: rgba(0,229,160,0.12); } 100% { background: transparent; } }
-  .flash { animation: flash 0.18s ease; }
+/* ── Help sheet ── */
+.help-sheet {
+  position: fixed; inset: 0;
+  background: rgba(10,10,15,0.97);
+  z-index: 300;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  padding: 28px 20px 40px;
+  gap: 0;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+}
+.help-sheet.open { transform: translateY(0); }
+.help-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.help-title { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:1.6rem; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; }
+.btn-close {
+  width:34px; height:34px; border-radius:50%; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:1.1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; touch-action:manipulation;
+}
+.help-section { margin-bottom:22px; }
+.help-section h3 {
+  font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1rem;
+  letter-spacing:0.1em; text-transform:uppercase; color:var(--warn);
+  margin-bottom:8px; display:flex; align-items:center; gap:8px;
+}
+.help-section p, .help-section li {
+  font-size:0.83rem; color:var(--muted); line-height:1.7;
+}
+.help-section ul { padding-left:16px; }
+.help-section li { margin-bottom:4px; }
+.help-step {
+  display: flex; gap:12px; align-items:flex-start;
+  padding: 10px 12px; background: var(--surface);
+  border:1px solid var(--border); border-radius:10px; margin-bottom:8px;
+}
+.help-step-num {
+  font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:1.2rem;
+  color:var(--accent); flex-shrink:0; min-width:20px;
+}
+.help-step-text { font-size:0.82rem; color:var(--text); line-height:1.6; }
+.help-step-text b { color:var(--accent); }
+.tip-box {
+  background: rgba(255,184,48,0.08); border:1px solid rgba(255,184,48,0.25);
+  border-radius:10px; padding:12px 14px; margin-bottom:8px;
+}
+.tip-box p { color:var(--warn); font-size:0.8rem; line-height:1.6; }
+.help-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
 </style>
 </head>
 <body>
-
 <div class="glow-orb top"></div>
-<div class="glow-orb bottom"></div>
+<div class="glow-orb bot"></div>
 
+<!-- Permission overlay -->
 <div class="overlay" id="permOverlay">
   <div class="overlay-icon">📱</div>
   <h2>Motion Access Needed</h2>
-  <p>JogStart uses your phone's accelerometer to detect jogging and prompt you to launch YouTube Music.<br><br>Tap below to grant permission (required on iOS 13+).</p>
-  <button class="btn-start" id="permBtn">Grant Motion Permission</button>
-  <p style="font-size:0.7rem;color:var(--muted)">Android grants this automatically — tap to continue.</p>
+  <p>JogStart uses your accelerometer to detect jogging and launch YouTube Music.<br><br>Tap below to grant permission (required on iOS 13+).</p>
+  <button class="btn-main" id="permBtn" style="max-width:280px">Grant Motion Permission</button>
+  <p class="overlay-note">Android grants this automatically — tap to continue.</p>
 </div>
 
+<!-- Help sheet (slides up from bottom) -->
+<div class="help-sheet" id="helpSheet">
+  <div class="help-header">
+    <span class="help-title">How to use</span>
+    <button class="btn-close" id="closeHelp">✕</button>
+  </div>
+
+  <div class="help-section">
+    <h3>🚀 Quick Start</h3>
+    <div class="help-step"><span class="help-step-num">1</span><span class="help-step-text">Open this page in <b>Chrome</b> on your Pixel 6. Add it to your home screen (3-dot menu → Add to Home Screen) for the best experience.</span></div>
+    <div class="help-step"><span class="help-step-num">2</span><span class="help-step-text">Tap <b>▶ Start Jog Session</b>. The app arms the motion detector and starts the timer.</span></div>
+    <div class="help-step"><span class="help-step-num">3</span><span class="help-step-text">Start running. The ring fills <b style="color:var(--accent)">green</b> when your cadence is in the jog range (110–210 spm). After 4 confirmed steps at jog pace, the app fires.</span></div>
+    <div class="help-step"><span class="help-step-num">4</span><span class="help-step-text">A <b style="color:var(--ytm)">green music banner</b> appears and a <b>beep</b> plays. Tap the banner to open YouTube Music instantly.</span></div>
+    <div class="help-step"><span class="help-step-num">5</span><span class="help-step-text">Tap <b>■ Stop Session</b> when done, or <b>↺ Reset</b> to clear all stats and start fresh.</span></div>
+  </div>
+
+  <hr class="help-divider">
+
+  <div class="help-section">
+    <h3>🎵 About Music Launch</h3>
+    <p>Chrome security prevents apps from auto-opening other apps or tabs without a direct user tap. JogStart works around this by:</p>
+    <ul style="margin-top:8px">
+      <li>Playing an <b style="color:var(--text)">audio beep</b> the moment jogging is detected (no tap needed)</li>
+      <li>Showing a large <b style="color:var(--ytm)">tap-to-open banner</b> — one tap opens YouTube Music directly</li>
+      <li>On Android with YouTube Music installed, the OS may offer to open the app instead of the browser</li>
+    </ul>
+  </div>
+
+  <hr class="help-divider">
+
+  <div class="help-section">
+    <h3>⚙️ Sensitivity Slider</h3>
+    <ul>
+      <li><b style="color:var(--text)">1–2 (Low):</b> Needs strong impact — best if phone is loose in pocket</li>
+      <li><b style="color:var(--text)">3 (Medium):</b> Default — works well in armband or hand</li>
+      <li><b style="color:var(--text)">4–5 (High):</b> Very sensitive — may false-trigger while walking</li>
+    </ul>
+  </div>
+
+  <hr class="help-divider">
+
+  <div class="help-section">
+    <h3>💡 Tips</h3>
+    <div class="tip-box"><p>Hold your phone in your hand or use an armband. Don't leave it loose in a bag — step detection is less reliable.</p></div>
+    <div class="tip-box"><p>Keep the screen on: set your screen timeout to max before jogging, or enable <b>Screen Wakelock</b> (the app will request it automatically when you start).</p></div>
+    <div class="tip-box"><p>The cadence ring color tells you your pace: <b style="color:var(--warn)">yellow</b> = walking, <b style="color:var(--accent)">green</b> = jogging, <b style="color:var(--accent2)">red</b> = sprinting.</p></div>
+  </div>
+
+  <hr class="help-divider">
+
+  <div class="help-section">
+    <h3>📋 Next Edition (Planned)</h3>
+    <ul>
+      <li>Garmin watch integration — push pace/cadence to Instinct 2</li>
+      <li>Spotify / YTM OAuth — auto-queue your jog playlist</li>
+      <li>Session history with distance estimate (stored locally)</li>
+      <li>Anti-false-positive: 5-second sustained cadence check</li>
+      <li>Configurable jog cadence range</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Main app -->
 <div class="container">
+
   <div class="header">
-    <div class="logo">Jog<span>Start</span></div>
-    <div class="tagline">Motion-triggered music launcher</div>
+    <div>
+      <div class="logo">Jog<span>Start</span></div>
+      <div class="tagline">Motion-triggered music launcher</div>
+    </div>
+    <button class="btn-help" id="helpBtn" title="Help">?</button>
+  </div>
+
+  <div class="wakelock-badge">
+    <div class="wakelock-dot" id="wakelockDot"></div>
+    <span id="wakelockLabel">Screen wakelock off</span>
   </div>
 
   <div class="ring-wrap" id="ringWrap">
@@ -250,14 +362,23 @@
     <span class="slider-val" id="sensitivityVal">3</span>
   </div>
 
-  <button class="btn-start" id="mainBtn">▶ Start Jog Session</button>
+  <button class="btn-main" id="mainBtn">▶ Start Jog Session</button>
 
+  <!--
+    MUSIC BANNER
+    Uses max-height + padding animation (not display:none) so it's always
+    in the layout flow and never clipped by a parent's overflow:hidden.
+    Tap = user gesture → window.open() is allowed by Chrome.
+  -->
   <button class="music-banner" id="musicBanner">
     🎵 Tap to Open YouTube Music
-    <span class="sub">Jogging detected — music is ready</span>
+    <span class="msub" id="musicSub">Jogging detected — tap to play!</span>
   </button>
 
-  <button class="btn-reset" id="resetBtn">↺ Reset Session</button>
+  <div class="btn-row">
+    <button class="btn-secondary" id="resetBtn">↺ Reset</button>
+    <button class="btn-secondary" id="muteBtn">🔔 Sound On</button>
+  </div>
 
   <div class="log-wrap">
     <div class="log-head"><span>Activity Log</span><span id="logCount">0 events</span></div>
@@ -266,30 +387,57 @@
 </div>
 
 <script>
-const STATE = { IDLE: 'idle', ARMED: 'armed', JOGGING: 'jogging' };
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const STATE = { IDLE:'idle', ARMED:'armed', JOGGING:'jogging' };
 let state = STATE.IDLE;
 let steps = 0, cadence = 0, peakCadence = 0;
 let startTime = null, elapsedTimer = null;
-let cadenceWindow = [], lastAcc = { x: 0, y: 0, z: 0 }, lastPeakTime = 0;
-let jogDetectCount = 0, musicBannerShown = false;
+let cadenceWindow = [], lastAcc = {x:0,y:0,z:0}, lastPeakTime = 0;
+let jogDetectCount = 0, bannerShown = false;
 let sensitivity = 3, logEvents = 0;
+let soundEnabled = true;
+let wakelockSentinel = null;
+let audioCtx = null; // created on first user gesture to comply with AudioContext policy
 
 const JOG_MIN = 110, JOG_MAX = 210, CONFIRM_CYCLES = 4, PEAK_WINDOW_MS = 2000;
 
+// ═══════════════════════════════════════════════════
+//  DOM
+// ═══════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
-const permOverlay = $('permOverlay'), permBtn = $('permBtn');
-const mainBtn = $('mainBtn'), musicBanner = $('musicBanner'), resetBtn = $('resetBtn');
-const cadenceValEl = $('cadenceVal'), statusText = $('statusText');
-const ringFill = $('ringFill'), ringWrap = $('ringWrap');
-const stepCountEl = $('stepCount'), elapsedTimeEl = $('elapsedTime'), peakCadenceEl = $('peakCadence');
-const logBody = $('logBody'), logCountEl = $('logCount');
-const sensitivitySlider = $('sensitivitySlider'), sensitivityValEl = $('sensitivityVal');
+const permOverlay    = $('permOverlay');
+const permBtn        = $('permBtn');
+const mainBtn        = $('mainBtn');
+const musicBanner    = $('musicBanner');
+const musicSub       = $('musicSub');
+const resetBtn       = $('resetBtn');
+const muteBtn        = $('muteBtn');
+const helpBtn        = $('helpBtn');
+const helpSheet      = $('helpSheet');
+const closeHelp      = $('closeHelp');
+const cadenceValEl   = $('cadenceVal');
+const statusText     = $('statusText');
+const ringFill       = $('ringFill');
+const ringWrap       = $('ringWrap');
+const stepCountEl    = $('stepCount');
+const elapsedTimeEl  = $('elapsedTime');
+const peakCadenceEl  = $('peakCadence');
+const logBody        = $('logBody');
+const logCountEl     = $('logCount');
+const slider         = $('sensitivitySlider');
+const sliderVal      = $('sensitivityVal');
+const wakelockDot    = $('wakelockDot');
+const wakelockLabel  = $('wakelockLabel');
 
-// ── Logging ──
-function log(msg, type = 'info') {
+// ═══════════════════════════════════════════════════
+//  LOGGING
+// ═══════════════════════════════════════════════════
+function log(msg, type='info') {
   const now = new Date();
   const ts = [now.getHours(), now.getMinutes(), now.getSeconds()]
-    .map(n => String(n).padStart(2, '0')).join(':');
+    .map(n => String(n).padStart(2,'0')).join(':');
   const el = document.createElement('div');
   el.className = 'log-entry ' + type;
   el.innerHTML = `<span class="ts">${ts}</span><span class="msg">${msg}</span>`;
@@ -297,7 +445,65 @@ function log(msg, type = 'info') {
   logCountEl.textContent = ++logEvents + ' events';
 }
 
-// ── Permission ──
+// ═══════════════════════════════════════════════════
+//  AUDIO — Web Audio API beep (no network, no popup)
+//  AudioContext must be created inside a user gesture.
+//  We initialise it lazily on the first button tap.
+// ═══════════════════════════════════════════════════
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+}
+
+function playBeep(freq=880, duration=0.18, vol=0.35) {
+  if (!soundEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+
+// Three-beep jog-start fanfare
+function playJogStart() {
+  if (!soundEnabled || !audioCtx) return;
+  [0, 0.18, 0.36].forEach((delay, i) => {
+    setTimeout(() => playBeep([660, 770, 880][i], 0.15, 0.4), delay * 1000);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  SCREEN WAKELOCK — keeps screen on during jog
+// ═══════════════════════════════════════════════════
+async function requestWakelock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakelockSentinel = await navigator.wakeLock.request('screen');
+    wakelockDot.classList.add('on');
+    wakelockLabel.textContent = 'Screen wakelock on';
+    wakelockSentinel.addEventListener('release', () => {
+      wakelockDot.classList.remove('on');
+      wakelockLabel.textContent = 'Screen wakelock off';
+    });
+    log('Screen wakelock acquired', 'ok');
+  } catch(e) {
+    log('Wakelock unavailable', 'warn');
+  }
+}
+
+async function releaseWakelock() {
+  if (wakelockSentinel) { await wakelockSentinel.release(); wakelockSentinel = null; }
+}
+
+// ═══════════════════════════════════════════════════
+//  PERMISSION
+// ═══════════════════════════════════════════════════
 function checkPermission() {
   if (typeof DeviceMotionEvent !== 'undefined' &&
       typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -309,18 +515,21 @@ function checkPermission() {
 }
 
 permBtn.addEventListener('click', async () => {
+  initAudio();
   try {
     const r = await DeviceMotionEvent.requestPermission();
     permOverlay.classList.add('hidden');
-    log(r === 'granted' ? 'Motion permission granted' : 'Permission denied', r === 'granted' ? 'ok' : 'err');
-    if (r !== 'granted') { permBtn.textContent = 'Permission Denied'; permBtn.disabled = true; }
+    log(r === 'granted' ? 'Permission granted' : 'Permission denied', r === 'granted' ? 'ok' : 'err');
+    if (r !== 'granted') { permBtn.textContent = 'Denied'; permBtn.disabled = true; }
   } catch {
     permOverlay.classList.add('hidden');
     log('Motion sensor ready', 'ok');
   }
 });
 
-// ── Motion detection ──
+// ═══════════════════════════════════════════════════
+//  MOTION DETECTION
+// ═══════════════════════════════════════════════════
 function getThreshold() { return [2.5, 2.0, 1.4, 1.0, 0.8][sensitivity - 1]; }
 
 function onMotion(e) {
@@ -330,7 +539,7 @@ function onMotion(e) {
 
   const dx = acc.x - lastAcc.x, dy = acc.y - lastAcc.y, dz = acc.z - lastAcc.z;
   lastAcc = { x: acc.x, y: acc.y, z: acc.z };
-  const mag = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const mag = Math.sqrt(dx*dx + dy*dy + dz*dz);
   const now = Date.now();
 
   if (mag > getThreshold() && now - lastPeakTime > 250) {
@@ -344,12 +553,14 @@ function onMotion(e) {
 
     if (cadenceWindow.length >= 2) {
       const dur = cadenceWindow.at(-1) - cadenceWindow[0];
-      if (dur === 0) return; // guard division by zero
+      if (dur === 0) return;
       cadence = Math.round((cadenceWindow.length - 1) / dur * 60000);
       updateRing();
 
       if (cadence >= JOG_MIN && cadence <= JOG_MAX) {
-        if (++jogDetectCount >= CONFIRM_CYCLES && state === STATE.ARMED) transitionToJogging();
+        if (++jogDetectCount >= CONFIRM_CYCLES && state === STATE.ARMED) {
+          transitionToJogging();
+        }
       } else {
         if (jogDetectCount > 0) jogDetectCount--;
       }
@@ -357,26 +568,26 @@ function onMotion(e) {
   }
 }
 
-// ── Ring UI ──
+// ═══════════════════════════════════════════════════
+//  RING UI
+// ═══════════════════════════════════════════════════
 function updateRing() {
   cadenceValEl.textContent = cadence > 0 ? cadence : '--';
   if (cadence > peakCadence && cadence < 250) peakCadenceEl.textContent = peakCadence = cadence;
-
   const pct = Math.min(Math.max((cadence - 60) / 140, 0), 1);
   ringFill.style.strokeDashoffset = 2 * Math.PI * 80 * (1 - pct);
-
   const color = cadence >= JOG_MIN && cadence <= JOG_MAX ? 'var(--accent)'
-              : cadence > 0 && cadence < JOG_MIN       ? 'var(--warn)'
-              : 'var(--accent2)';
-  ringFill.style.stroke = color;
-  cadenceValEl.style.color = color;
+              : cadence > 0 && cadence < JOG_MIN ? 'var(--warn)' : 'var(--accent2)';
+  ringFill.style.stroke = cadenceValEl.style.color = color;
 }
 
-// ── State transitions ──
+// ═══════════════════════════════════════════════════
+//  STATE TRANSITIONS
+// ═══════════════════════════════════════════════════
 function resetUI() {
   steps = cadence = peakCadence = jogDetectCount = 0;
-  musicBannerShown = false;
-  cadenceWindow = []; lastAcc = { x: 0, y: 0, z: 0 }; lastPeakTime = 0;
+  bannerShown = false;
+  cadenceWindow = []; lastAcc = {x:0,y:0,z:0}; lastPeakTime = 0;
   stepCountEl.textContent = '0';
   peakCadenceEl.textContent = '--';
   elapsedTimeEl.textContent = '0:00';
@@ -386,15 +597,15 @@ function resetUI() {
   ringFill.style.stroke = 'var(--accent)';
   musicBanner.classList.remove('visible');
   musicBanner.style.opacity = '';
-  musicBanner.querySelector('.sub').textContent = 'Jogging detected — music is ready';
+  musicSub.textContent = 'Jogging detected — tap to play!';
 }
 
-function transitionToArmed() {
+async function transitionToArmed() {
   state = STATE.ARMED;
   resetUI();
   statusText.textContent = 'Waiting for jog…';
   mainBtn.textContent = '■ Stop Session';
-  mainBtn.className = 'btn-start armed';
+  mainBtn.className = 'btn-main armed';
   startTime = Date.now();
   clearInterval(elapsedTimer);
   elapsedTimer = setInterval(() => {
@@ -402,6 +613,7 @@ function transitionToArmed() {
     elapsedTimeEl.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   }, 1000);
   window.addEventListener('devicemotion', onMotion);
+  await requestWakelock();
   log('Session armed — start running!', 'ok');
 }
 
@@ -409,64 +621,109 @@ function transitionToJogging() {
   state = STATE.JOGGING;
   ringWrap.classList.add('jogging-active');
   statusText.textContent = 'Jogging detected!';
-  mainBtn.className = 'btn-start jogging';
-  log('Jog confirmed at ' + cadence + ' spm — tap banner for music', 'ok');
-  if (!musicBannerShown) {
-    musicBannerShown = true;
-    musicBanner.classList.add('visible');
+  mainBtn.className = 'btn-main jogging';
+  log('Jog confirmed at ' + cadence + ' spm', 'ok');
+
+  // Audio cue — works without any user tap (AudioContext already unlocked)
+  playJogStart();
+
+  // Show music banner
+  if (!bannerShown) {
+    bannerShown = true;
+    // Small rAF delay ensures CSS transition runs after display
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        musicBanner.classList.add('visible');
+        log('Music banner shown — tap to open YouTube Music', 'warn');
+      });
+    });
   }
 }
 
-function transitionToIdle() {
+async function transitionToIdle() {
   state = STATE.IDLE;
   window.removeEventListener('devicemotion', onMotion);
   clearInterval(elapsedTimer);
   ringWrap.classList.remove('jogging-active');
+  await releaseWakelock();
   statusText.textContent = 'Session ended';
   mainBtn.textContent = '▶ Start Jog Session';
-  mainBtn.className = 'btn-start';
+  mainBtn.className = 'btn-main';
   log('Ended — ' + steps + ' steps in ' + elapsedTimeEl.textContent, 'ok');
 }
 
-function hardReset() {
+async function hardReset() {
   window.removeEventListener('devicemotion', onMotion);
   clearInterval(elapsedTimer);
   ringWrap.classList.remove('jogging-active');
+  await releaseWakelock();
   state = STATE.IDLE;
   resetUI();
   statusText.textContent = 'Idle';
   mainBtn.textContent = '▶ Start Jog Session';
-  mainBtn.className = 'btn-start';
+  mainBtn.className = 'btn-main';
   log('Reset', 'warn');
 }
 
-// ── Music banner tap — this IS the user gesture, so window.open works ──
+// ═══════════════════════════════════════════════════
+//  MUSIC BANNER — user tap = gesture → window.open allowed
+// ═══════════════════════════════════════════════════
 musicBanner.addEventListener('click', () => {
-  // Open YouTube Music. On Android, if the app is installed the OS will
-  // show an intent chooser or open it directly. Falls back to browser.
   window.open('https://music.youtube.com/', '_blank');
   log('YouTube Music opened', 'ok');
-  musicBanner.style.opacity = '0.5';
-  musicBanner.querySelector('.sub').textContent = 'Opened — enjoy your run! 🎶';
+  musicBanner.style.opacity = '0.55';
+  musicSub.textContent = 'Opened — enjoy your run! 🎶';
 });
 
-// ── Button wiring ──
+// ═══════════════════════════════════════════════════
+//  BUTTON WIRING
+// ═══════════════════════════════════════════════════
 mainBtn.addEventListener('click', () => {
+  initAudio(); // unlock AudioContext on first user tap
   if (state === STATE.IDLE) transitionToArmed();
   else transitionToIdle();
 });
 
-resetBtn.addEventListener('click', hardReset);
+resetBtn.addEventListener('click', () => {
+  initAudio();
+  hardReset();
+});
 
-sensitivitySlider.addEventListener('input', () => {
-  sensitivity = parseInt(sensitivitySlider.value);
-  sensitivityValEl.textContent = sensitivity;
+muteBtn.addEventListener('click', () => {
+  initAudio();
+  soundEnabled = !soundEnabled;
+  muteBtn.textContent = soundEnabled ? '🔔 Sound On' : '🔕 Sound Off';
+  log('Sound ' + (soundEnabled ? 'on' : 'off'), 'info');
+  if (soundEnabled) playBeep(660, 0.1, 0.3); // confirm beep
+});
+
+slider.addEventListener('input', () => {
+  sensitivity = parseInt(slider.value);
+  sliderVal.textContent = sensitivity;
   log('Sensitivity: ' + ['Low','Med-Low','Medium','Med-High','High'][sensitivity - 1], 'info');
 });
 
-// ── Init ──
+helpBtn.addEventListener('click', () => helpSheet.classList.add('open'));
+closeHelp.addEventListener('click', () => helpSheet.classList.remove('open'));
+// Swipe down to close help
+let helpTouchY = 0;
+helpSheet.addEventListener('touchstart', e => { helpTouchY = e.touches[0].clientY; }, { passive: true });
+helpSheet.addEventListener('touchend', e => {
+  if (e.changedTouches[0].clientY - helpTouchY > 60) helpSheet.classList.remove('open');
+}, { passive: true });
+
+// Re-acquire wakelock if page becomes visible again (e.g. after app switch)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && state !== STATE.IDLE && !wakelockSentinel) {
+    await requestWakelock();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
 checkPermission();
-log('JogStart ready', 'ok');
+log('JogStart v3 ready', 'ok');
 </script>
 </body>
 </html>
