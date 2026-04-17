@@ -695,19 +695,34 @@ function transitionToJogging(){
     requestAnimationFrame(()=>requestAnimationFrame(()=>musicBanner.classList.add('show')));
 
     if(IS_STANDALONE){
-      // ── STANDALONE (installed PWA) MODE ──────────────────
-      // Chrome grants autoplay permission to installed PWAs, so
-      // window.open() works here without any user gesture.
-      // Small delay lets the fanfare beep play first (360ms).
+      // ── STANDALONE PWA MODE — open native YouTube Music app ──
+      //
+      // window.open() with intent:// is blocked (no user gesture).
+      // window.open() with https:// opens a browser tab, not the app.
+      //
+      // Fix: location.href = intent:// URI
+      //   - Treated as a navigation, not a popup → no gesture required
+      //   - Android intent resolver intercepts it and routes to the
+      //     YouTube Music native app (com.google.android.apps.youtube.music)
+      //   - S.browser_fallback_url kicks in if app not installed
+      //   - The PWA window stays open in the background
+      //
+      // Delay 400ms so the 3-beep fanfare plays first.
       setTimeout(()=>{
-        window.open('https://music.youtube.com/','_blank');
-        log('▶ YouTube Music auto-launched (PWA mode)','ok');
+        const fallback = encodeURIComponent('https://music.youtube.com/');
+        const intentUri =
+          'intent://music.youtube.com/#Intent;' +
+          'scheme=https;' +
+          'package=com.google.android.apps.youtube.music;' +
+          'S.browser_fallback_url=' + fallback + ';' +
+          'end';
+        location.href = intentUri;
+        log('▶ Launching YouTube Music native app…','ok');
         musicBanner.style.opacity='0.5';
-        msub.textContent='Auto-launched — enjoy your run! 🎶';
+        msub.textContent='Native app launching — enjoy your run! 🎶';
       },400);
     }else{
-      // ── BROWSER MODE ─────────────────────────────────────
-      // Can't auto-open without gesture — banner requires a tap.
+      // ── BROWSER MODE — banner tap required ───────────────────
       log('Tap the green banner to open YouTube Music','warn');
     }
   }
@@ -729,11 +744,22 @@ resetBtn.addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════════════
-//  MUSIC BANNER
+//  MUSIC BANNER TAP
+//  Uses intent:// on Android to open native YTM app.
+//  Tap is a real user gesture so intent navigation is allowed.
 // ═══════════════════════════════════════════════════
 musicBanner.addEventListener('click',()=>{
-  window.open('https://music.youtube.com/','_blank');
-  log('YouTube Music opened','ok');
+  const fallback = encodeURIComponent('https://music.youtube.com/');
+  const intentUri =
+    'intent://music.youtube.com/#Intent;' +
+    'scheme=https;' +
+    'package=com.google.android.apps.youtube.music;' +
+    'S.browser_fallback_url=' + fallback + ';' +
+    'end';
+  // Use location.href so Android intent resolver can intercept it.
+  // On non-Android or if app not installed, fallback URL opens in browser.
+  location.href = intentUri;
+  log('YouTube Music native app opening','ok');
   musicBanner.style.opacity='0.5';
   msub.textContent='Opened — enjoy your run! 🎶';
 });
