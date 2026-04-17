@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
 <title>JogStart</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;800&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <style>
@@ -52,6 +53,30 @@ body::before{
 .wl-row{display:flex;align-items:center;gap:6px;align-self:flex-end;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .wl-dot{width:6px;height:6px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .3s}
 .wl-dot.on{background:var(--accent);box-shadow:0 0 5px var(--accent)}
+
+/* standalone mode badge */
+.pwa-badge{display:none;align-items:center;gap:6px;align-self:flex-start;
+  background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.25);
+  border-radius:20px;padding:3px 10px;font-size:.6rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent)}
+.pwa-badge.show{display:flex}
+.pwa-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 5px var(--accent)}
+
+/* install banner — shown in browser mode only */
+.install-banner{
+  width:100%;padding:12px 14px;border-radius:12px;
+  background:rgba(77,166,255,0.08);border:1px solid rgba(77,166,255,0.25);
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  touch-action:manipulation;transition:opacity .3s;
+}
+.install-banner.hidden{display:none}
+.install-banner-icon{font-size:1.4rem;flex-shrink:0}
+.install-banner-text{flex:1}
+.install-banner-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.install-banner-sub{font-size:.68rem;color:var(--muted);margin-top:1px;line-height:1.4}
+.install-banner-close{color:var(--muted);font-size:1rem;padding:4px;flex-shrink:0}
 
 /* ring */
 .ring-wrap{position:relative;width:182px;height:182px}
@@ -179,15 +204,15 @@ input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
 <div class="sheet" id="helpSheet">
   <div class="sh-hdr"><span class="sh-title">How to use</span><button class="sh-close" id="closeHelp">✕</button></div>
   <div class="hs"><h3>🚀 Quick Start</h3>
-    <div class="hstep"><span class="hstep-n">1</span><span class="hstep-t">Open in <b>Chrome</b> on your Pixel 6. Add to Home Screen (3-dot menu) for the best experience.</span></div>
-    <div class="hstep"><span class="hstep-n">2</span><span class="hstep-t">Tap <b>▶ Start Jog Session</b>. The screen stays on (wakelock), the timer starts, and motion detection arms.</span></div>
-    <div class="hstep"><span class="hstep-n">3</span><span class="hstep-t">Start running. The ring turns <b>green</b> at jog cadence. After 4–5 seconds of sustained jog pace, a beep fires and the music banner appears.</span></div>
-    <div class="hstep"><span class="hstep-n">4</span><span class="hstep-t">Tap <b>🎵 Open YouTube Music</b> banner. One tap is all it takes.</span></div>
-    <div class="hstep"><span class="hstep-n">5</span><span class="hstep-t">Tap <b>■ Stop</b> when done. The session is saved to history automatically.</span></div>
+    <div class="hstep"><span class="hstep-n">1</span><span class="hstep-t">Open this page in Chrome. Tap <b>⋮ → Add to Home Screen</b> to install as a PWA — this unlocks <b style="color:var(--accent)">full auto-play</b> (music launches automatically, no tap needed).</span></div>
+    <div class="hstep"><span class="hstep-n">2</span><span class="hstep-t"><b>Relaunch from the home screen icon.</b> The green <b>"Running as app"</b> badge confirms auto-play is active.</span></div>
+    <div class="hstep"><span class="hstep-n">3</span><span class="hstep-t">Tap <b>▶ Start Jog Session</b>. Screen stays on (wakelock active), timer starts, motion detection arms.</span></div>
+    <div class="hstep"><span class="hstep-n">4</span><span class="hstep-t">Start running. Ring turns <b>green</b> at jog cadence. After ~4 seconds sustained, a beep fires and YouTube Music opens automatically.</span></div>
+    <div class="hstep"><span class="hstep-n">5</span><span class="hstep-t">Tap <b>■ Stop</b> when done. Session saves to history automatically.</span></div>
   </div>
   <hr class="hdiv">
-  <div class="hs"><h3>🎵 Why not fully auto?</h3>
-    <p>Chrome's security model blocks apps from opening other apps or new tabs without a direct finger tap — this is an OS-level rule, not a Chrome setting. JogStart works around it by playing an <b style="color:var(--text)">audio beep</b> instantly (no tap needed) and showing a large banner that opens YouTube Music in one tap.</p>
+  <div class="hs"><h3>🎵 Auto-play: browser vs installed</h3>
+    <p>In <b style="color:var(--text)">browser mode</b>, Chrome blocks auto-launching apps — tap the green banner (one tap). In <b style="color:var(--accent)">installed PWA mode</b> (launched from home screen icon), Chrome grants autoplay permission and YouTube Music opens automatically the moment jogging is detected.</p>
   </div>
   <hr class="hdiv">
   <div class="hs"><h3>⚙️ Sensitivity</h3>
@@ -224,6 +249,22 @@ input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
       <button class="icon-btn" id="histBtn" title="Session history">📋</button>
       <button class="icon-btn" id="helpBtn" title="Help">?</button>
     </div>
+  </div>
+
+  <!-- PWA standalone badge (shown when running as installed app) -->
+  <div class="pwa-badge" id="pwaBadge">
+    <div class="pwa-dot"></div>
+    <span>Running as app — auto-play enabled</span>
+  </div>
+
+  <!-- Install banner (shown in browser mode only) -->
+  <div class="install-banner" id="installBanner">
+    <div class="install-banner-icon">📲</div>
+    <div class="install-banner-text">
+      <div class="install-banner-title">Install for auto-play</div>
+      <div class="install-banner-sub">Add to Home Screen to auto-launch YouTube Music when jogging is detected — no tap needed</div>
+    </div>
+    <span class="install-banner-close" id="installClose">✕</span>
   </div>
 
   <!-- Wakelock indicator -->
@@ -346,6 +387,14 @@ const sensSlider=$('sensSlider'),sensValEl=$('sensVal');
 const jogMinEl=$('jogMin'),jogMaxEl=$('jogMax');
 const wlDot=$('wlDot'),wlLabel=$('wlLabel');
 const histList=$('histList');
+const pwaBadge=$('pwaBadge'),installBanner=$('installBanner'),installClose=$('installClose');
+
+// Detect standalone (installed PWA) mode.
+// In standalone mode Chrome grants autoplay without a user gesture.
+const IS_STANDALONE = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone === true;
+
+let deferredInstallPrompt = null; // stores beforeinstallprompt event
 
 function getJogMin(){return parseInt(jogMinEl.value)||110}
 function getJogMax(){return parseInt(jogMaxEl.value)||210}
@@ -640,10 +689,27 @@ function transitionToJogging(){
   mainBtn.className='btn jogging';
   log('Jog confirmed at '+cadence+' spm','ok');
   playJogFanfare();
+
   if(!bannerShown){
     bannerShown=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>musicBanner.classList.add('show')));
-    log('Tap the green banner to open YouTube Music','warn');
+
+    if(IS_STANDALONE){
+      // ── STANDALONE (installed PWA) MODE ──────────────────
+      // Chrome grants autoplay permission to installed PWAs, so
+      // window.open() works here without any user gesture.
+      // Small delay lets the fanfare beep play first (360ms).
+      setTimeout(()=>{
+        window.open('https://music.youtube.com/','_blank');
+        log('▶ YouTube Music auto-launched (PWA mode)','ok');
+        musicBanner.style.opacity='0.5';
+        msub.textContent='Auto-launched — enjoy your run! 🎶';
+      },400);
+    }else{
+      // ── BROWSER MODE ─────────────────────────────────────
+      // Can't auto-open without gesture — banner requires a tap.
+      log('Tap the green banner to open YouTube Music','warn');
+    }
   }
 }
 
@@ -716,10 +782,54 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 // ═══════════════════════════════════════════════════
+//  PWA INSTALL BANNER
+// ═══════════════════════════════════════════════════
+// Capture the install prompt so we can show it on demand
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+installBanner.addEventListener('click', async e => {
+  if(e.target === installClose){ installBanner.classList.add('hidden'); return; }
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    const {outcome} = await deferredInstallPrompt.userChoice;
+    if(outcome==='accepted') log('PWA installed — relaunch from home screen for auto-play','ok');
+    deferredInstallPrompt=null;
+    installBanner.classList.add('hidden');
+  }else{
+    // Fallback: guide user manually
+    log('Tap browser menu → Add to Home Screen','warn');
+    installBanner.querySelector('.install-banner-sub').textContent =
+      'Tap ⋮ menu → "Add to Home Screen", then relaunch from your home screen';
+  }
+});
+
+// ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
 checkPermission();
-log('JogStart v4 ready','ok');
+
+if(IS_STANDALONE){
+  // Running as installed PWA
+  pwaBadge.classList.add('show');
+  installBanner.classList.add('hidden');
+  log('PWA standalone mode — auto-play active','ok');
+  // In standalone mode AudioContext starts running — init immediately
+  initAudio();
+}else{
+  // Running in browser — show install nudge unless dismissed
+  if(!localStorage.getItem('installDismissed')){
+    installBanner.classList.remove('hidden');
+  }
+  installClose.addEventListener('click',()=>{
+    installBanner.classList.add('hidden');
+    localStorage.setItem('installDismissed','1');
+  });
+}
+
+log('JogStart v4 ready'+(IS_STANDALONE?' [PWA]':''),'ok');
 </script>
 </body>
 </html>
