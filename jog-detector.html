@@ -386,33 +386,58 @@ function playJogFanfare(){
 
 // ═══════════════════════════════════════════════════
 //  SCREEN WAKELOCK
-//  KEY FIX: must call navigator.wakeLock.request() as the
-//  VERY FIRST await inside the click handler — before any
-//  other async work. Chrome's gesture token expires after the
-//  first microtask yield that doesn't trace back to the tap.
+//
+//  Root cause of "permission request failed":
+//  Any await before navigator.wakeLock.request() — including
+//  AudioContext creation, overlay repaints, or even other
+//  awaits — consumes Chrome's user-gesture token. Once the
+//  token is gone, wakeLock throws immediately.
+//
+//  Fix: call wakeLock.request() SYNCHRONOUSLY (no await before it),
+//  then handle the promise with .then()/.catch() so it resolves
+//  in the background without blocking the gesture path.
+//  A 500ms retry covers cases where the page briefly loses focus
+//  during the tap (e.g. soft-keyboard dismiss, overlay paint).
 // ═══════════════════════════════════════════════════
-async function acquireWakelock(){
+function onWakelockGranted(sentinel){
+  wlSentinel=sentinel;
+  wlDot.classList.add('on');
+  wlLabel.textContent='Screen lock: on';
+  sentinel.addEventListener('release',()=>{
+    wlDot.classList.remove('on');
+    wlLabel.textContent='Screen lock: off';
+    wlSentinel=null;
+  });
+  log('Screen wakelock ON','ok');
+}
+
+function acquireWakelock(){
   if(!('wakeLock' in navigator)){
-    log('Wakelock not supported on this browser','warn');
+    log('Wakelock not supported','warn');
     return;
   }
-  try{
-    // ← Called immediately, before resetUI() or anything else
-    wlSentinel=await navigator.wakeLock.request('screen');
-    wlDot.classList.add('on');
-    wlLabel.textContent='Screen lock: on';
-    wlSentinel.addEventListener('release',()=>{
-      wlDot.classList.remove('on');
-      wlLabel.textContent='Screen lock: off';
-      wlSentinel=null;
+  if(wlSentinel) return; // already held
+  // Fire synchronously — NO await here, that's the key
+  navigator.wakeLock.request('screen')
+    .then(onWakelockGranted)
+    .catch(e=>{
+      // First attempt failed (focus race) — retry once after 500ms
+      // By then the page is guaranteed visible and painted
+      log('Wakelock: retrying in 500ms ('+e.message+')','warn');
+      setTimeout(()=>{
+        if(state===S.IDLE||wlSentinel) return; // session already stopped
+        navigator.wakeLock.request('screen')
+          .then(onWakelockGranted)
+          .catch(e2=>log('Wakelock unavailable: '+e2.message,'warn'));
+      },500);
     });
-    log('Screen wakelock ON','ok');
-  }catch(e){
-    log('Wakelock failed: '+e.message,'warn');
-  }
 }
-async function releaseWakelock(){
-  if(wlSentinel){try{await wlSentinel.release()}catch(e){} wlSentinel=null;}
+
+function releaseWakelock(){
+  if(wlSentinel){
+    wlSentinel.release().catch(()=>{});
+    wlSentinel=null;
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -573,13 +598,13 @@ function resetUI(){
   msub.textContent='Jogging detected — tap to play!';
 }
 
-// ── START: wakelock must be the very first await ──
-mainBtn.addEventListener('click',async()=>{
+// ── START / STOP — fully synchronous, no async/await ──
+mainBtn.addEventListener('click',()=>{
   initAudio();
   if(state===S.IDLE){
-    // 1. Request wakelock FIRST — still within the synchronous part of the gesture
-    await acquireWakelock();
-    // 2. Now do the rest
+    // acquireWakelock() fires .request() synchronously then handles
+    // the promise with .then/.catch — no await, gesture token intact
+    acquireWakelock();
     state=S.ARMED;
     resetUI();
     stxtEl.textContent='Waiting for jog…';
@@ -590,18 +615,16 @@ mainBtn.addEventListener('click',async()=>{
     elapsedTimer=setInterval(()=>{
       const s=Math.floor((Date.now()-startTime)/1000);
       elapsedEl.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-      // update calories on tick too
       calValEl.textContent=Math.round(MET*WEIGHT_KG*(s/3600));
     },1000);
     window.addEventListener('devicemotion',onMotion);
     log('Session armed — start running!','ok');
   }else{
-    // Stop
     saveSession();
     window.removeEventListener('devicemotion',onMotion);
     clearInterval(elapsedTimer);
     ringWrap.classList.remove('jog-active');
-    await releaseWakelock();
+    releaseWakelock();
     state=S.IDLE;
     stxtEl.textContent='Session ended';
     mainBtn.textContent='▶ Start Jog Session';
@@ -624,13 +647,13 @@ function transitionToJogging(){
   }
 }
 
-// Reset button — also needs wakelock if re-arming immediately
-resetBtn.addEventListener('click',async()=>{
+// Reset button — synchronous, no async needed
+resetBtn.addEventListener('click',()=>{
   initAudio();
   window.removeEventListener('devicemotion',onMotion);
   clearInterval(elapsedTimer);
   ringWrap.classList.remove('jog-active');
-  await releaseWakelock();
+  releaseWakelock();
   state=S.IDLE;
   resetUI();
   stxtEl.textContent='Idle';
@@ -682,15 +705,13 @@ closeHist.addEventListener('click',()=>histSheet.classList.remove('open'));
   sheet.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-ty>60)sheet.classList.remove('open')},{passive:true});
 });
 
-// Re-acquire wakelock on visibility restore (e.g. after switching apps mid-run)
-document.addEventListener('visibilitychange',async()=>{
+// Re-acquire wakelock when page becomes visible again (e.g. after app switch)
+// visibilitychange IS allowed to call wakeLock.request() without a gesture
+document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&state!==S.IDLE&&!wlSentinel){
-    // Visibility restore is NOT a user gesture — use noThrow approach
-    try{
-      wlSentinel=await navigator.wakeLock.request('screen');
-      wlDot.classList.add('on');wlLabel.textContent='Screen lock: on';
-      wlSentinel.addEventListener('release',()=>{wlDot.classList.remove('on');wlLabel.textContent='Screen lock: off';wlSentinel=null;});
-    }catch(e){}
+    navigator.wakeLock&&navigator.wakeLock.request('screen')
+      .then(onWakelockGranted)
+      .catch(()=>{});
   }
 });
 
