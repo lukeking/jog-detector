@@ -1,9 +1,224 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Jog Detector</title>
+  <meta charset="UTF-8">
+  <!--
+    viewport-fit=cover is REQUIRED for env(safe-area-inset-*) to work.
+    Without it, the browser clips content to a "safe" rectangle and the
+    CSS variables return 0 — so the status bar overlap would persist.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="manifest" href="manifest.json">
+  <title>JogStart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;800&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Welcome to Jog Detector</h1>
-    <p>Detect your jogging patterns and improve your fitness!</p>
+
+<!-- Background decoration -->
+<div class="glow t"></div>
+<div class="glow b"></div>
+
+<!-- ── Permission overlay (iOS 13+ only) ── -->
+<div class="overlay" id="permOverlay">
+  <div class="ov-icon">📱</div>
+  <h2>Motion Access Needed</h2>
+  <p>JogStart needs your accelerometer to detect jogging.<br>Tap below to grant permission (iOS 13+ only).</p>
+  <button class="btn" id="permBtn" style="max-width:260px">Grant Permission</button>
+  <p style="font-size:.68rem;color:var(--muted)">Android grants automatically — tap to continue.</p>
+</div>
+
+<!-- ── Help sheet ── -->
+<div class="sheet" id="helpSheet">
+  <div class="sh-hdr">
+    <span class="sh-title">How to use</span>
+    <button class="sh-close" id="closeHelp">✕</button>
+  </div>
+
+  <div class="hs">
+    <h3>🚀 Quick Start</h3>
+    <div class="hstep"><span class="hstep-n">1</span><span class="hstep-t">Open in Chrome. Tap <b>⋮ → Add to Home Screen</b> to install as a PWA — unlocks <b style="color:var(--accent)">full auto-play</b>.</span></div>
+    <div class="hstep"><span class="hstep-n">2</span><span class="hstep-t">Relaunch from the home screen icon. The green <b>"Native app"</b> badge confirms auto-play is active.</span></div>
+    <div class="hstep"><span class="hstep-n">3</span><span class="hstep-t">Tap <b>▶ Start Jog Session</b>. Screen stays on, timer starts, motion detection arms.</span></div>
+    <div class="hstep"><span class="hstep-n">4</span><span class="hstep-t">Start running. Ring turns <b>green</b> at jog cadence. After ~4 seconds, a beep fires and YouTube Music starts automatically.</span></div>
+    <div class="hstep"><span class="hstep-n">5</span><span class="hstep-t">Tap <b>■ Stop</b> when done. Session saves to history.</span></div>
+  </div>
+
+  <hr class="hdiv">
+
+  <div class="hs">
+    <h3>🎵 Auto-play: browser vs installed</h3>
+    <p>In <b style="color:var(--text)">browser mode</b>, Chrome blocks auto-launching apps — tap the green banner. In <b style="color:var(--accent)">APK / installed PWA mode</b>, YouTube Music opens and starts playing automatically.</p>
+  </div>
+
+  <hr class="hdiv">
+
+  <div class="hs">
+    <h3>⚙️ Sensitivity</h3>
+    <ul>
+      <li><b style="color:var(--text)">1–2 Low:</b> Strong impact — loose in pocket</li>
+      <li><b style="color:var(--text)">3 Medium:</b> Default — armband or hand</li>
+      <li><b style="color:var(--text)">4–5 High:</b> Very sensitive — may false-trigger walking</li>
+    </ul>
+  </div>
+
+  <hr class="hdiv">
+
+  <div class="hs">
+    <h3>💡 Tips</h3>
+    <div class="tip"><p>Hold the phone or use an armband. Loose in a bag reduces accuracy.</p></div>
+    <div class="tip"><p>Ring colour: <b style="color:var(--warn)">yellow</b> = walking · <b style="color:var(--accent)">green</b> = jogging · <b style="color:var(--accent2)">red</b> = sprinting</p></div>
+    <div class="tip"><p>Set a custom cadence range if you run slower or faster than 110–210 spm.</p></div>
+  </div>
+</div>
+
+<!-- ── History sheet ── -->
+<div class="sheet" id="histSheet">
+  <div class="sh-hdr">
+    <span class="sh-title">Session History</span>
+    <button class="sh-close" id="closeHist">✕</button>
+  </div>
+  <div id="histList"></div>
+  <button class="hist-clear" id="clearHist">🗑 Clear All History</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP
+     ══════════════════════════════════════════════════════════ -->
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="logo">Jog<span>Start</span></div>
+      <div class="tagline">Motion-triggered music launcher</div>
+    </div>
+    <div class="hdr-right">
+      <button class="icon-btn" id="histBtn" title="Session history" aria-label="History">
+        <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <span style="font-size:1.1rem;line-height:1">📋</span>
+          <span style="font-size:0.48rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">History</span>
+        </span>
+      </button>
+      <button class="icon-btn" id="helpBtn" title="Help" aria-label="Help">
+        <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <span style="font-size:1.1rem;line-height:1;font-weight:700">?</span>
+          <span style="font-size:0.48rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Help</span>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- App/PWA mode badge -->
+  <div class="pwa-badge" id="pwaBadge">
+    <div class="pwa-dot"></div>
+    <span>Running as app — auto-play enabled</span>
+  </div>
+
+  <!-- Install nudge (browser mode only) -->
+  <div class="install-banner hidden" id="installBanner">
+    <div class="install-banner-icon">📲</div>
+    <div class="install-banner-text">
+      <div class="install-banner-title">Install for auto-play</div>
+      <div class="install-banner-sub">Add to Home Screen to auto-launch YouTube Music when jogging is detected</div>
+    </div>
+    <span class="install-banner-close" id="installClose">✕</span>
+  </div>
+
+  <!-- Wakelock indicator -->
+  <div class="wl-row">
+    <div class="wl-dot" id="wlDot"></div>
+    <span id="wlLabel">Screen lock: off</span>
+  </div>
+
+  <!-- Cadence ring -->
+  <div class="ring-wrap" id="ringWrap">
+    <div class="pulse-ring"></div>
+    <svg class="ring-svg" viewBox="0 0 170 170">
+      <circle class="ring-bg" cx="85" cy="85" r="80"/>
+      <circle class="ring-fill" id="ringFill" cx="85" cy="85" r="80"/>
+    </svg>
+    <div class="ring-inner">
+      <div class="cval" id="cval">--</div>
+      <div class="clbl">steps / min</div>
+      <div class="stxt" id="stxt">Idle</div>
+    </div>
+  </div>
+
+  <!-- Stats row 1 -->
+  <div class="stats">
+    <div class="sc"><div class="sv" id="stepCount">0</div><div class="sl">Steps</div></div>
+    <div class="sc"><div class="sv" id="elapsed">0:00</div><div class="sl">Duration</div></div>
+    <div class="sc"><div class="sv" id="peakSpm">--</div><div class="sl">Peak SPM</div></div>
+  </div>
+
+  <!-- Stats row 2 -->
+  <div class="xstats">
+    <div class="sc"><div class="sv" id="distVal">0.00</div><div class="sl">Distance (km)</div></div>
+    <div class="sc"><div class="sv" id="calVal">0</div><div class="sl">Est. Calories</div></div>
+  </div>
+
+  <!-- Sensitivity -->
+  <div class="srow">
+    <span class="slbl">Sensitivity</span>
+    <input type="range" id="sensSlider" min="1" max="5" value="3" step="1">
+    <span class="sval" id="sensVal">3</span>
+  </div>
+
+  <!-- Cadence range -->
+  <div style="width:100%">
+    <div class="range-row">
+      <div style="flex:1">
+        <input type="number" class="range-inp" id="jogMin" value="110" min="60" max="200">
+        <div class="range-lbl">Min SPM</div>
+      </div>
+      <span class="range-sep">—</span>
+      <div style="flex:1">
+        <input type="number" class="range-inp" id="jogMax" value="210" min="100" max="300">
+        <div class="range-lbl">Max SPM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Music query (APK mode only) -->
+  <div style="width:100%;display:none" id="musicQueryRow">
+    <input type="text" class="range-inp" id="musicQuery"
+      placeholder="e.g. running music, energetic, hip hop…"
+      style="width:100%;text-align:left;padding:8px 12px;font-size:0.82rem;letter-spacing:0">
+    <div class="range-lbl" style="text-align:left;margin-top:4px">
+      Music to play on jog detect (leave blank = last played)
+    </div>
+  </div>
+
+  <!-- Main action button -->
+  <button class="btn" id="mainBtn">▶ Start Jog Session</button>
+
+  <!-- Music banner -->
+  <button class="music-banner" id="musicBanner">
+    🎵 Tap to Open YouTube Music
+    <span class="msub" id="msub">Jogging detected — tap to play!</span>
+  </button>
+
+  <!-- Secondary actions -->
+  <div class="brow">
+    <button class="sbtn" id="resetBtn">↺ Reset</button>
+    <button class="sbtn active-toggle" id="soundBtn">🔔 Sound</button>
+  </div>
+
+  <!-- Activity log -->
+  <div class="log-wrap">
+    <div class="log-hd"><span>Activity Log</span><span id="logCount">0 events</span></div>
+    <div class="log-bd" id="logBd"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- Logic loaded last so DOM is ready -->
+<script src="app.js"></script>
+
 </body>
 </html>

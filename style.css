@@ -1,0 +1,343 @@
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Design tokens ── */
+:root{
+  --bg:#0a0a0f;
+  --surface:#12121a;
+  --border:#1e1e2e;
+  --accent:#00e5a0;
+  --accent2:#ff4d6d;
+  --text:#e8e8f0;
+  --muted:#5a5a7a;
+  --warn:#ffb830;
+  --ytm:#1db954;
+  --blue:#4da6ff;
+
+  /* Safe area insets — filled by the browser/WebView with real values.
+     On Android with a status bar, --sat will be the status bar height (e.g. 28-36px).
+     This prevents content from being covered by the system status bar. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
+html{height:100%}
+
+body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Barlow',sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  /* Top padding = safe area + app padding; sides/bottom also respect insets */
+  padding: calc(var(--sat) + 18px) calc(var(--sal) + 14px) calc(var(--sab) + 36px) calc(var(--sar) + 14px);
+  position:relative;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── Background decoration ── */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background-image:
+    linear-gradient(rgba(0,229,160,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,160,0.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+.glow{position:fixed;width:440px;height:440px;border-radius:50%;pointer-events:none;z-index:0}
+.glow.t{top:-110px;left:-110px;background:radial-gradient(circle,rgba(0,229,160,0.07) 0%,transparent 70%)}
+.glow.b{bottom:-110px;right:-110px;background:radial-gradient(circle,rgba(255,77,109,0.05) 0%,transparent 70%)}
+
+/* ── Layout container ── */
+.wrap{
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:390px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+}
+
+/* ── Header ── */
+.hdr{width:100%;display:flex;align-items:flex-start;justify-content:space-between}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:2.2rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);line-height:1}
+.logo span{color:var(--text)}
+.tagline{font-size:.7rem;color:var(--muted);letter-spacing:.17em;text-transform:uppercase;margin-top:3px}
+
+.hdr-right{display:flex;gap:6px;align-items:center;padding-top:2px}
+
+/* 48×48px minimum touch target (Material Design guideline) */
+.icon-btn{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--muted);
+  font-size:1.1rem;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .18s;
+  touch-action:manipulation;
+  flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+  position:relative;
+  /* Extra invisible tap area via padding so finger can hit slightly outside */
+  outline:none;
+}
+.icon-btn:active{background:var(--border);color:var(--accent);border-color:var(--accent)}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Status indicators ── */
+.wl-row{display:flex;align-items:center;gap:6px;align-self:flex-end;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.wl-dot{width:6px;height:6px;border-radius:50%;background:var(--border);flex-shrink:0;transition:all .3s}
+.wl-dot.on{background:var(--accent);box-shadow:0 0 5px var(--accent)}
+
+.pwa-badge{
+  display:none;
+  align-items:center;
+  gap:6px;
+  align-self:flex-start;
+  background:rgba(0,229,160,0.1);
+  border:1px solid rgba(0,229,160,0.25);
+  border-radius:20px;
+  padding:3px 10px;
+  font-size:.6rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+.pwa-badge.show{display:flex}
+.pwa-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent)}
+
+/* ── Install banner ── */
+.install-banner{
+  width:100%;
+  padding:12px 14px;
+  border-radius:12px;
+  background:rgba(77,166,255,0.08);
+  border:1px solid rgba(77,166,255,0.25);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  touch-action:manipulation;
+  transition:opacity .3s;
+}
+.install-banner.hidden{display:none}
+.install-banner-icon{font-size:1.4rem;flex-shrink:0}
+.install-banner-text{flex:1}
+.install-banner-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.install-banner-sub{font-size:.68rem;color:var(--muted);margin-top:1px;line-height:1.4}
+.install-banner-close{color:var(--muted);font-size:1rem;padding:4px;flex-shrink:0}
+
+/* ── Cadence ring ── */
+.ring-wrap{position:relative;width:182px;height:182px}
+.ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:4}
+.ring-fill{
+  fill:none;
+  stroke:var(--accent);
+  stroke-width:4;
+  stroke-linecap:round;
+  stroke-dasharray:502;
+  stroke-dashoffset:502;
+  transition:stroke-dashoffset .4s ease,stroke .4s ease;
+  filter:drop-shadow(0 0 6px var(--accent));
+}
+.ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.cval{font-family:'Barlow Condensed',sans-serif;font-size:2.6rem;font-weight:800;line-height:1;color:var(--accent);transition:color .4s}
+.clbl{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.stxt{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+
+@keyframes pulse-ring-anim{0%{transform:scale(1);opacity:1}100%{transform:scale(1.25);opacity:0}}
+.pulse-ring{position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--accent);opacity:0;pointer-events:none}
+.jog-active .pulse-ring{animation:pulse-ring-anim 1.2s ease-out infinite}
+
+@keyframes flash{0%{background:rgba(0,229,160,.11)}100%{background:transparent}}
+.flash{animation:flash .18s ease}
+
+/* ── Stats grids ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:100%}
+.xstats{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:9px 5px;text-align:center}
+.sv{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:1.2rem;color:var(--text)}
+.sl{font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+
+/* ── Sensitivity slider ── */
+.srow{width:100%;display:flex;align-items:center;gap:10px}
+.slbl{font-size:.59rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);white-space:nowrap;min-width:72px}
+input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
+.sval{font-family:'Barlow Condensed',sans-serif;font-size:.88rem;color:var(--accent);min-width:22px;text-align:right}
+
+/* ── Cadence range inputs ── */
+.range-row{display:flex;gap:8px;width:100%;align-items:center}
+.range-inp{
+  flex:1;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 10px;
+  color:var(--text);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:1rem;
+  text-align:center;
+  outline:none;
+  transition:border-color .18s;
+}
+.range-inp:focus{border-color:var(--accent)}
+.range-sep{color:var(--muted);font-size:.8rem}
+.range-lbl{font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-top:4px;text-align:center}
+
+/* ── Main CTA button ── */
+.btn{
+  width:100%;
+  padding:15px;
+  border-radius:13px;
+  border:none;
+  cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;
+  font-size:1.1rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  background:var(--accent);
+  color:#0a0a0f;
+  transition:all .18s;
+  touch-action:manipulation;
+}
+.btn:active{transform:scale(.97)}
+.btn.armed{background:var(--accent2);color:#fff}
+.btn.jogging{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+
+/* ── Music banner ── */
+.music-banner{
+  width:100%;
+  border:none;
+  cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;
+  font-size:1.06rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  text-align:center;
+  background:linear-gradient(135deg,var(--ytm) 0%,var(--accent) 100%);
+  color:#0a0a0f;
+  border-radius:13px;
+  touch-action:manipulation;
+  /* Animate via max-height+padding instead of display:none to avoid overflow clipping */
+  max-height:0;
+  overflow:hidden;
+  padding:0 16px;
+  opacity:0;
+  pointer-events:none;
+  transition:max-height .38s ease,padding .38s ease,opacity .38s ease;
+}
+.music-banner.show{max-height:90px;padding:14px 16px;opacity:1;pointer-events:auto}
+.music-banner:active{filter:brightness(.9)}
+.msub{display:block;font-size:.6rem;font-weight:400;opacity:.8;margin-top:3px;letter-spacing:.08em}
+
+/* ── Secondary buttons ── */
+.brow{display:flex;gap:7px;width:100%}
+.sbtn{
+  flex:1;
+  padding:10px 6px;
+  border-radius:11px;
+  border:1px solid var(--border);
+  cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:600;
+  font-size:.86rem;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  background:transparent;
+  color:var(--muted);
+  transition:all .18s;
+  touch-action:manipulation;
+}
+.sbtn:active{background:var(--surface);color:var(--text)}
+.sbtn.active-toggle{border-color:var(--accent);color:var(--accent)}
+
+/* ── Activity log ── */
+.log-wrap{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden}
+.log-hd{padding:7px 13px;font-size:.59rem;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.log-bd{padding:7px 13px;height:66px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.le{font-size:.67rem;color:var(--muted);display:flex;gap:7px}
+.le .ts{color:var(--accent);font-family:'Barlow Condensed',sans-serif;flex-shrink:0}
+.le.ok .msg{color:var(--accent)}
+.le.warn .msg{color:var(--warn)}
+.le.err .msg{color:var(--accent2)}
+
+/* ── Overlays ── */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(10,10,15,.97);
+  z-index:200;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+  gap:14px;
+  text-align:center;
+}
+.overlay.hidden{display:none}
+.ov-icon{font-size:2.6rem}
+.overlay h2{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.6rem}
+.overlay p{color:var(--muted);font-size:.83rem;line-height:1.65}
+
+/* ── Slide-up sheets (help + history) ── */
+.sheet{
+  position:fixed;
+  inset:0;
+  /* Sheet also respects safe areas for its own padding */
+  padding: calc(var(--sat) + 24px) 18px calc(var(--sab) + 40px);
+  background:rgba(10,10,15,.98);
+  z-index:300;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.32,.72,0,1);
+}
+.sheet.open{transform:translateY(0)}
+.sh-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-shrink:0}
+.sh-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.5rem;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.sh-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+
+/* ── Help content ── */
+.hs{margin-bottom:20px}
+.hs h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+.hs p,.hs li{font-size:.81rem;color:var(--muted);line-height:1.7}
+.hs ul{padding-left:15px}
+.hs li{margin-bottom:3px}
+.hstep{display:flex;gap:11px;align-items:flex-start;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:7px}
+.hstep-n{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15rem;color:var(--accent);flex-shrink:0;min-width:18px}
+.hstep-t{font-size:.8rem;color:var(--text);line-height:1.6}
+.hstep-t b{color:var(--accent)}
+.tip{background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.22);border-radius:9px;padding:10px 12px;margin-bottom:7px}
+.tip p{color:var(--warn);font-size:.78rem;line-height:1.6}
+.hdiv{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* ── History list ── */
+.hist-empty{color:var(--muted);font-size:.82rem;text-align:center;padding:24px 0}
+.hist-item{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:9px}
+.hist-date{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.hist-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.hist-stat .sv{font-size:1.1rem}
+.hist-clear{width:100%;padding:10px;border-radius:10px;border:1px solid var(--accent2);background:transparent;color:var(--accent2);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;touch-action:manipulation}

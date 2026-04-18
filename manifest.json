@@ -2,7 +2,7 @@
   "name": "JogStart",
   "short_name": "JogStart",
   "description": "Motion-triggered YouTube Music launcher for jogging",
-  "start_url": "/jog-detector/jog-detector.html",
+  "start_url": "/jog-detector/index.html",
   "scope": "/jog-detector/",
   "display": "standalone",
   "background_color": "#0a0a0f",
