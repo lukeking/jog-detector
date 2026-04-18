@@ -694,31 +694,35 @@ function transitionToJogging(){
     bannerShown=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>musicBanner.classList.add('show')));
 
-    if(IS_STANDALONE){
-      // ── STANDALONE PWA MODE — open native YouTube Music app ──
+    if(IS_STANDALONE || window.Android){
+      // ── NATIVE APK MODE (window.Android bridge exists) ───────
+      // OR standalone PWA — attempt native launch.
       //
-      // window.open() with intent:// is blocked (no user gesture).
-      // window.open() with https:// opens a browser tab, not the app.
-      //
-      // Fix: location.href = intent:// URI
-      //   - Treated as a navigation, not a popup → no gesture required
-      //   - Android intent resolver intercepts it and routes to the
-      //     YouTube Music native app (com.google.android.apps.youtube.music)
-      //   - S.browser_fallback_url kicks in if app not installed
-      //   - The PWA window stays open in the background
-      //
-      // Delay 400ms so the 3-beep fanfare plays first.
-      setTimeout(() => {
-        if (window.Android && window.Android.isYouTubeMusicInstalled() === 'true') {
-          window.Android.launchYouTubeMusic(); // native bridge — no gesture needed
-          log('▶ YouTube Music launched natively', 'ok');
-        } else {
-          // fallback: intent URI for browser/PWA mode
-          location.href = 'intent://music.youtube.com/#Intent;scheme=https;package=com.google.android.apps.youtube.music;S.browser_fallback_url=https%3A%2F%2Fmusic.youtube.com%2F;end';
+      // Priority order:
+      //  1. window.Android.launchYouTubeMusic() — Kotlin bridge,
+      //     calls startActivity() directly, zero gesture needed,
+      //     guaranteed to open the native app.
+      //  2. location.href intent:// — works from a tap (gesture),
+      //     used as fallback if somehow bridge is missing.
+      setTimeout(()=>{
+        if(window.Android){
+          // ── APK bridge path ──────────────────────────────────
+          try{
+            window.Android.launchYouTubeMusic();
+            log('▶ YouTube Music launched via native bridge','ok');
+            musicBanner.style.opacity='0.5';
+            msub.textContent='Native app launched — enjoy your run! 🎶';
+          }catch(e){
+            log('Bridge error: '+e.message+' — trying intent URI','warn');
+            _launchViaIntentUri();
+          }
+        }else{
+          // ── PWA standalone, no bridge — intent URI fallback ──
+          _launchViaIntentUri();
         }
-      }, 400);
+      },400); // 400ms lets the 3-beep fanfare finish first
     }else{
-      // ── BROWSER MODE — banner tap required ───────────────────
+      // ── BROWSER MODE — requires a tap on the banner ──────────
       log('Tap the green banner to open YouTube Music','warn');
     }
   }
@@ -740,22 +744,40 @@ resetBtn.addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════════════
-//  MUSIC BANNER TAP
-//  Uses intent:// on Android to open native YTM app.
-//  Tap is a real user gesture so intent navigation is allowed.
+//  INTENT URI HELPER
+//  Used as fallback when Android bridge unavailable.
+//  Works from a user tap (gesture present).
+//  In standalone PWA from setTimeout it may open web —
+//  the native APK bridge is the definitive fix for that.
 // ═══════════════════════════════════════════════════
-musicBanner.addEventListener('click',()=>{
+function _launchViaIntentUri(){
   const fallback = encodeURIComponent('https://music.youtube.com/');
-  const intentUri =
+  location.href =
     'intent://music.youtube.com/#Intent;' +
     'scheme=https;' +
     'package=com.google.android.apps.youtube.music;' +
     'S.browser_fallback_url=' + fallback + ';' +
     'end';
-  // Use location.href so Android intent resolver can intercept it.
-  // On non-Android or if app not installed, fallback URL opens in browser.
-  location.href = intentUri;
-  log('YouTube Music native app opening','ok');
+  log('▶ Launching via intent URI','warn');
+  musicBanner.style.opacity='0.5';
+  msub.textContent='Launching… enjoy your run! 🎶';
+}
+
+// ═══════════════════════════════════════════════════
+//  MUSIC BANNER TAP
+// ═══════════════════════════════════════════════════
+musicBanner.addEventListener('click',()=>{
+  if(window.Android){
+    // Inside APK — use native bridge (tap also has gesture, but bridge
+    // is cleaner and guaranteed to open the app, not a browser tab)
+    try{
+      window.Android.launchYouTubeMusic();
+      log('YouTube Music launched via native bridge','ok');
+    }catch(e){ _launchViaIntentUri(); }
+  }else{
+    // Browser / PWA — tap provides the gesture, intent URI works here
+    _launchViaIntentUri();
+  }
   musicBanner.style.opacity='0.5';
   msub.textContent='Opened — enjoy your run! 🎶';
 });
@@ -833,15 +855,21 @@ installBanner.addEventListener('click', async e => {
 // ═══════════════════════════════════════════════════
 checkPermission();
 
-if(IS_STANDALONE){
-  // Running as installed PWA
+if(window.Android){
+  // Running inside the native APK
+  pwaBadge.classList.add('show');
+  pwaBadge.querySelector('span').textContent='Native app — auto-play enabled';
+  installBanner.classList.add('hidden');
+  initAudio();
+  log('JogStart APK mode — native bridge active','ok');
+}else if(IS_STANDALONE){
+  // Installed PWA from home screen
   pwaBadge.classList.add('show');
   installBanner.classList.add('hidden');
-  log('PWA standalone mode — auto-play active','ok');
-  // In standalone mode AudioContext starts running — init immediately
   initAudio();
+  log('PWA standalone mode — intent URI fallback active','ok');
 }else{
-  // Running in browser — show install nudge unless dismissed
+  // Plain browser
   if(!localStorage.getItem('installDismissed')){
     installBanner.classList.remove('hidden');
   }
@@ -851,7 +879,7 @@ if(IS_STANDALONE){
   });
 }
 
-log('JogStart v4 ready'+(IS_STANDALONE?' [PWA]':''),'ok');
+log('JogStart v4 ready'+(window.Android?' [APK]':IS_STANDALONE?' [PWA]':''),'ok');
 </script>
 </body>
 </html>
