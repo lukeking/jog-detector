@@ -389,12 +389,22 @@ const wlDot=$('wlDot'),wlLabel=$('wlLabel');
 const histList=$('histList');
 const pwaBadge=$('pwaBadge'),installBanner=$('installBanner'),installClose=$('installClose');
 
-// Detect standalone (installed PWA) mode.
-// In standalone mode Chrome grants autoplay without a user gesture.
-const IS_STANDALONE = window.matchMedia('(display-mode: standalone)').matches
-  || window.navigator.standalone === true;
+// ── Runtime environment detection ─────────────────────────
+// IS_APK: true when running inside our native WebView wrapper.
+// We detect this via the custom User-Agent suffix added in MainActivity.kt:
+//   userAgentString = defaultUA + " JogStartApp/1.0"
+// This is 100% reliable — display-mode and window.Android both have
+// timing/context issues; UA is set before any JS runs.
+const IS_APK = navigator.userAgent.includes('JogStartApp/');
 
-let deferredInstallPrompt = null; // stores beforeinstallprompt event
+// IS_STANDALONE: true when launched as an installed PWA from home screen.
+// Only meaningful in the non-APK browser path.
+const IS_STANDALONE = !IS_APK && (
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true
+);
+
+let deferredInstallPrompt = null;
 
 function getJogMin(){return parseInt(jogMinEl.value)||110}
 function getJogMax(){return parseInt(jogMaxEl.value)||210}
@@ -694,35 +704,39 @@ function transitionToJogging(){
     bannerShown=true;
     requestAnimationFrame(()=>requestAnimationFrame(()=>musicBanner.classList.add('show')));
 
-    if(IS_STANDALONE || window.Android){
-      // ── NATIVE APK MODE (window.Android bridge exists) ───────
-      // OR standalone PWA — attempt native launch.
-      //
-      // Priority order:
-      //  1. window.Android.launchYouTubeMusic() — Kotlin bridge,
-      //     calls startActivity() directly, zero gesture needed,
-      //     guaranteed to open the native app.
-      //  2. location.href intent:// — works from a tap (gesture),
-      //     used as fallback if somehow bridge is missing.
+    if(IS_APK || IS_STANDALONE){
       setTimeout(()=>{
-        if(window.Android){
-          // ── APK bridge path ──────────────────────────────────
-          try{
-            window.Android.launchYouTubeMusic();
-            log('▶ YouTube Music launched via native bridge','ok');
-            musicBanner.style.opacity='0.5';
-            msub.textContent='Native app launched — enjoy your run! 🎶';
-          }catch(e){
-            log('Bridge error: '+e.message+' — trying intent URI','warn');
-            _launchViaIntentUri();
-          }
+        if(IS_APK){
+          // Poll for window.Android up to 10 × 100ms = 1s
+          // Bridge is always injected before loadUrl() but JS may run
+          // before the binding is fully visible — polling is the safe fix.
+          let attempts = 0;
+          const tryBridge = () => {
+            if(window.Android && typeof window.Android.launchYouTubeMusic === 'function'){
+              try{
+                window.Android.launchYouTubeMusic();
+                log('▶ YouTube Music launched via native bridge','ok');
+                musicBanner.style.opacity='0.5';
+                msub.textContent='Native app launched — enjoy your run! 🎶';
+              }catch(e){
+                log('Bridge error: '+e.message,'warn');
+                _launchViaIntentUri();
+              }
+            }else if(++attempts < 10){
+              setTimeout(tryBridge, 100);
+            }else{
+              log('Bridge timeout — trying intent URI','warn');
+              _launchViaIntentUri();
+            }
+          };
+          tryBridge();
         }else{
-          // ── PWA standalone, no bridge — intent URI fallback ──
+          // PWA standalone — intent URI (works from gesture context but not timer;
+          // best effort here, user can also tap the banner)
           _launchViaIntentUri();
         }
-      },400); // 400ms lets the 3-beep fanfare finish first
+      }, 400); // wait for fanfare beep to finish
     }else{
-      // ── BROWSER MODE — requires a tap on the banner ──────────
       log('Tap the green banner to open YouTube Music','warn');
     }
   }
@@ -767,15 +781,12 @@ function _launchViaIntentUri(){
 //  MUSIC BANNER TAP
 // ═══════════════════════════════════════════════════
 musicBanner.addEventListener('click',()=>{
-  if(window.Android){
-    // Inside APK — use native bridge (tap also has gesture, but bridge
-    // is cleaner and guaranteed to open the app, not a browser tab)
+  if(IS_APK && window.Android){
     try{
       window.Android.launchYouTubeMusic();
       log('YouTube Music launched via native bridge','ok');
     }catch(e){ _launchViaIntentUri(); }
   }else{
-    // Browser / PWA — tap provides the gesture, intent URI works here
     _launchViaIntentUri();
   }
   musicBanner.style.opacity='0.5';
@@ -855,21 +866,21 @@ installBanner.addEventListener('click', async e => {
 // ═══════════════════════════════════════════════════
 checkPermission();
 
-if(window.Android){
-  // Running inside the native APK
+if(IS_APK){
+  // ── Native APK (WebView wrapper) ──────────────────────────
   pwaBadge.classList.add('show');
-  pwaBadge.querySelector('span').textContent='Native app — auto-play enabled';
+  pwaBadge.querySelector('span').textContent = 'Native app — auto-play enabled';
   installBanner.classList.add('hidden');
-  initAudio();
+  initAudio(); // AudioContext allowed immediately in WebView
   log('JogStart APK mode — native bridge active','ok');
 }else if(IS_STANDALONE){
-  // Installed PWA from home screen
+  // ── Installed PWA from home screen ────────────────────────
   pwaBadge.classList.add('show');
   installBanner.classList.add('hidden');
   initAudio();
-  log('PWA standalone mode — intent URI fallback active','ok');
+  log('PWA standalone mode — intent URI active','ok');
 }else{
-  // Plain browser
+  // ── Plain browser ──────────────────────────────────────────
   if(!localStorage.getItem('installDismissed')){
     installBanner.classList.remove('hidden');
   }
@@ -879,7 +890,7 @@ if(window.Android){
   });
 }
 
-log('JogStart v4 ready'+(window.Android?' [APK]':IS_STANDALONE?' [PWA]':''),'ok');
+log('JogStart v4 ready'+(IS_APK?' [APK]':IS_STANDALONE?' [PWA]':''),'ok');
 </script>
 </body>
 </html>
