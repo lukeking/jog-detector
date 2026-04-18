@@ -708,19 +708,15 @@ function transitionToJogging(){
       //   - The PWA window stays open in the background
       //
       // Delay 400ms so the 3-beep fanfare plays first.
-      setTimeout(()=>{
-        const fallback = encodeURIComponent('https://music.youtube.com/');
-        const intentUri =
-          'intent://music.youtube.com/#Intent;' +
-          'scheme=https;' +
-          'package=com.google.android.apps.youtube.music;' +
-          'S.browser_fallback_url=' + fallback + ';' +
-          'end';
-        location.href = intentUri;
-        log('▶ Launching YouTube Music native app…','ok');
-        musicBanner.style.opacity='0.5';
-        msub.textContent='Native app launching — enjoy your run! 🎶';
-      },400);
+      setTimeout(() => {
+        if (window.Android && window.Android.isYouTubeMusicInstalled() === 'true') {
+          window.Android.launchYouTubeMusic(); // native bridge — no gesture needed
+          log('▶ YouTube Music launched natively', 'ok');
+        } else {
+          // fallback: intent URI for browser/PWA mode
+          location.href = 'intent://music.youtube.com/#Intent;scheme=https;package=com.google.android.apps.youtube.music;S.browser_fallback_url=https%3A%2F%2Fmusic.youtube.com%2F;end';
+        }
+      }, 400);
     }else{
       // ── BROWSER MODE — banner tap required ───────────────────
       log('Tap the green banner to open YouTube Music','warn');
