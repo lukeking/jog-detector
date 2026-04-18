@@ -45,9 +45,19 @@ body::before{
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:2.2rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);line-height:1}
 .logo span{color:var(--text)}
 .tagline{font-size:.7rem;color:var(--muted);letter-spacing:.17em;text-transform:uppercase;margin-top:3px}
-.hdr-right{display:flex;gap:8px;align-items:center;padding-top:4px}
-.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;touch-action:manipulation;flex-shrink:0}
-.icon-btn:active,.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hdr-right{display:flex;gap:6px;align-items:center;padding-top:2px}
+/* 48×48 minimum touch target per Material guidelines */
+.icon-btn{
+  width:48px;height:48px;border-radius:14px;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .18s;touch-action:manipulation;flex-shrink:0;
+  /* Extend tap area beyond visual boundary */
+  -webkit-tap-highlight-color:transparent;
+  position:relative;
+}
+.icon-btn:active{background:var(--border);color:var(--accent);border-color:var(--accent)}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* wakelock row */
 .wl-row{display:flex;align-items:center;gap:6px;align-self:flex-end;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -246,8 +256,18 @@ input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
       <div class="tagline">Motion-triggered music launcher</div>
     </div>
     <div class="hdr-right">
-      <button class="icon-btn" id="histBtn" title="Session history">📋</button>
-      <button class="icon-btn" id="helpBtn" title="Help">?</button>
+      <button class="icon-btn" id="histBtn" title="Session history" aria-label="History">
+        <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <span style="font-size:1.1rem;line-height:1">📋</span>
+          <span style="font-size:0.48rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">History</span>
+        </span>
+      </button>
+      <button class="icon-btn" id="helpBtn" title="Help" aria-label="Help">
+        <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <span style="font-size:1.1rem;line-height:1;font-weight:700">?</span>
+          <span style="font-size:0.48rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Help</span>
+        </span>
+      </button>
     </div>
   </div>
 
