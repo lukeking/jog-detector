@@ -322,6 +322,16 @@ input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
     </div>
   </div>
 
+  <!-- Music search query (APK mode only — passed to MEDIA_PLAY_FROM_SEARCH) -->
+  <div style="width:100%" id="musicQueryRow">
+    <input type="text" class="range-inp" id="musicQuery"
+      placeholder="e.g. running music, energetic, hip hop…"
+      style="width:100%;text-align:left;padding:8px 12px;font-size:0.82rem;letter-spacing:0">
+    <div class="range-lbl" style="text-align:left;margin-top:4px">
+      Music to play on jog detect (leave blank = last played)
+    </div>
+  </div>
+
   <!-- Main action button -->
   <button class="btn" id="mainBtn">▶ Start Jog Session</button>
 
@@ -385,6 +395,7 @@ const distValEl=$('distVal'),calValEl=$('calVal');
 const logBd=$('logBd'),logCountEl=$('logCount');
 const sensSlider=$('sensSlider'),sensValEl=$('sensVal');
 const jogMinEl=$('jogMin'),jogMaxEl=$('jogMax');
+const musicQueryEl=$('musicQuery'),musicQueryRow=$('musicQueryRow');
 const wlDot=$('wlDot'),wlLabel=$('wlLabel');
 const histList=$('histList');
 const pwaBadge=$('pwaBadge'),installBanner=$('installBanner'),installClose=$('installClose');
@@ -714,10 +725,12 @@ function transitionToJogging(){
           const tryBridge = () => {
             if(window.Android && typeof window.Android.launchYouTubeMusic === 'function'){
               try{
-                window.Android.launchYouTubeMusic();
-                log('▶ YouTube Music launched via native bridge','ok');
+                const query = musicQueryEl ? musicQueryEl.value.trim() : '';
+                window.Android.launchYouTubeMusic(query);
+                const msg = query ? `▶ Playing "${query}" in YouTube Music` : '▶ YouTube Music auto-play started';
+                log(msg,'ok');
                 musicBanner.style.opacity='0.5';
-                msub.textContent='Native app launched — enjoy your run! 🎶';
+                msub.textContent='Playing now — enjoy your run! 🎶';
               }catch(e){
                 log('Bridge error: '+e.message,'warn');
                 _launchViaIntentUri();
@@ -871,16 +884,19 @@ if(IS_APK){
   pwaBadge.classList.add('show');
   pwaBadge.querySelector('span').textContent = 'Native app — auto-play enabled';
   installBanner.classList.add('hidden');
+  if(musicQueryRow) musicQueryRow.style.display='block';
   initAudio(); // AudioContext allowed immediately in WebView
   log('JogStart APK mode — native bridge active','ok');
 }else if(IS_STANDALONE){
   // ── Installed PWA from home screen ────────────────────────
   pwaBadge.classList.add('show');
   installBanner.classList.add('hidden');
+  if(musicQueryRow) musicQueryRow.style.display='none';
   initAudio();
   log('PWA standalone mode — intent URI active','ok');
 }else{
   // ── Plain browser ──────────────────────────────────────────
+  if(musicQueryRow) musicQueryRow.style.display='none';
   if(!localStorage.getItem('installDismissed')){
     installBanner.classList.remove('hidden');
   }
